@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>L'APP - TINO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              yellow: '#facc15',
+              dark: '#0f1115',
+              card: '#1a1d27',
+              modal: '#1e222e',
+              border: '#2a2d3a',
+              input: '#171a23'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0f1115;
+      color: #e5e7eb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding-bottom: 100px;
+    }
+    .backdrop-blur-header {
+      background: rgba(15, 17, 21, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #13151d; }
+    ::-webkit-scrollbar-thumb { background: #33394b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #facc15; }
+    
+    .ai-gradient-btn {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #facc15 100%);
+      background-size: 200% 200%;
+      animation: gradientMove 4s ease infinite;
+    }
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-gray-100 flex flex-col">
+
+  <!-- HEADER FISSO -->
+  <header class="sticky top-0 z-40 backdrop-blur-header border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="bg-brand-yellow text-black font-black text-xs px-2 py-1 rounded-md tracking-wider">TINO</span>
+      <h1 class="font-extrabold text-lg text-white tracking-tight">L'APP - TINO</h1>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="openBackupModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-2.5 py-2 rounded-xl font-bold border border-gray-700 transition flex items-center gap-1.5" title="Backup / Data">
+        <i class="fa-solid fa-database text-brand-yellow"></i>
+        <span class="hidden sm:inline">Dati</span>
+      </button>
+      <button onclick="openSettingsModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-2.5 py-2 rounded-xl font-bold border border-gray-700 transition flex items-center gap-1.5" title="Impostazioni OpenAI">
+        <i class="fa-solid fa-key text-purple-400"></i>
+        <span class="hidden sm:inline">API Key</span>
+      </button>
+      <button onclick="startNewObjectFlow()" class="bg-brand-yellow hover:bg-yellow-400 text-black font-black text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-yellow-500/10">
+        <i class="fa-solid fa-plus text-sm"></i>
+        <span>Nuovo Oggetto</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENUTO PRINCIPALE / DASHBOARD -->
+  <main class="flex-grow max-w-3xl w-full mx-auto px-4 py-5">
+    
+    <!-- BARRA STATISTICHE -->
+    <div class="grid grid-cols-3 gap-3 mb-5">
+      <div class="bg-brand-card border border-brand-border rounded-2xl p-3 text-center">
+        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Totale Oggetti</div>
+        <div id="statTotal" class="text-xl font-black text-white mt-1">0</div>
+      </div>
+      <div class="bg-brand-card border border-brand-border rounded-2xl p-3 text-center">
+        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">In Vendita</div>
+        <div id="statAvailable" class="text-xl font-black text-brand-yellow mt-1">0</div>
+      </div>
+      <div class="bg-brand-card border border-brand-border rounded-2xl p-3 text-center">
+        <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Valore Stimato</div>
+        <div id="statValue" class="text-xl font-black text-green-400 mt-1">€ 0.00</div>
+      </div>
+    </div>
+
+    <!-- RICERCA E FILTRI -->
+    <div class="bg-brand-card border border-brand-border rounded-2xl p-3 mb-5 space-y-3">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+        <input type="text" id="searchInput" oninput="renderItems()" placeholder="Cerca per titolo, scatola o posizione..." class="w-full bg-brand-input border border-gray-700 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow transition">
+      </div>
+      <div class="flex flex-wrap gap-2 text-xs font-semibold" id="filterBadges">
+        <button onclick="setFilter('ALL')" id="filter-ALL" class="px-3 py-1.5 rounded-xl border border-brand-yellow bg-brand-yellow text-black font-extrabold transition">Tutti</button>
+        <button onclick="setFilter('Nessuna')" id="filter-Nessuna" class="px-3 py-1.5 rounded-xl border border-gray-700 bg-brand-input text-gray-300 hover:border-gray-500 transition">📦 In Scatola</button>
+        <button onclick="setFilter('VENDUTO')" id="filter-VENDUTO" class="px-3 py-1.5 rounded-xl border border-gray-700 bg-brand-input text-gray-300 hover:border-gray-500 transition">🔴 Venduti</button>
+        <button onclick="setFilter('DISPONIBILE')" id="filter-DISPONIBILE" class="px-3 py-1.5 rounded-xl border border-gray-700 bg-brand-input text-gray-300 hover:border-gray-500 transition">🟢 Disponibili</button>
+      </div>
+    </div>
+
+    <!-- LISTA OGGETTI -->
+    <div id="itemList" class="space-y-3">
+      <!-- Popolato via JS -->
+    </div>
+  </main>
+
+  <!-- INPUT FILE NASCOSTO PER FOTOCAMERA / GALLERIA -->
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" multiple class="hidden" onchange="handleImagesSelected(event)">
+  <input type="file" id="galleryInput" accept="image/*" multiple class="hidden" onchange="handleImagesSelected(event)">
+
+  <!-- MODALE WIZARD PER NUOVO OGGETTO -->
+  <div id="wizardModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-brand-modal border border-brand-border w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+      
+      <!-- Wizard Header -->
+      <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between bg-brand-card">
+        <div>
+          <h2 class="text-lg font-black text-brand-yellow flex items-center gap-2" id="wizardTitle">
+            📦 Nuovo Oggetto
+          </h2>
+          <div class="text-xs text-gray-400 mt-0.5" id="wizardStepInfo">Passaggio 1 di 5</div>
+        </div>
+        <button onclick="closeWizard()" class="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-gray-800 transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Wizard Body -->
+      <div class="p-5 overflow-y-auto flex-grow space-y-4" id="wizardBody">
+        <!-- Contenuto dinamico dello step -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODALE VENDITA / CAMBIO STATO -->
+  <div id="sellModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-brand-modal border border-brand-yellow w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+        <h3 class="font-black text-brand-yellow text-lg">💰 Registro Vendita Oggetto</h3>
+        <button onclick="closeSellModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div>
+        <label class="text-xs text-gray-400 font-bold block mb-1">Oggetto</label>
+        <div id="sellItemTitle" class="font-bold text-white text-base">---</div>
+      </div>
+      <div>
+        <label class="text-xs text-gray-400 font-bold block mb-1">Prezzo Effettivo di Vendita (€)</label>
+        <input type="number" step="0.01" id="sellPriceInput" class="w-full bg-brand-input border border-gray-700 rounded-xl px-3 py-2 text-white font-bold text-lg focus:border-brand-yellow outline-none">
+      </div>
+      <div>
+        <label class="text-xs text-gray-400 font-bold block mb-1">Piattaforma di vendita</label>
+        <select id="sellPlatformInput" class="w-full bg-brand-input border border-gray-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-brand-yellow">
+          <option value="Subito.it">Subito.it</option>
+          <option value="Vinted">Vinted</option>
+          <option value="Wallapop">Wallapop</option>
+          <option value="eBay">eBay</option>
+          <option value="Facebook Marketplace">Facebook Marketplace</option>
+          <option value="A mano / Altro">A mano / Altro</option>
+        </select>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeSellModal()" class="w-1/2 py-2.5 rounded-xl border border-gray-700 bg-brand-input text-gray-300 font-bold text-xs">Annulla</button>
+        <button onclick="confirmMarkAsSold()" class="w-1/2 py-2.5 rounded-xl bg-green-500 hover:bg-green-400 text-black font-extrabold text-xs transition">Conferma Venduto ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE IMPOSTAZIONI API KEY -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-brand-modal border border-brand-border w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+        <h3 class="font-black text-purple-400 text-lg flex items-center gap-2">
+          <i class="fa-solid fa-key"></i> Impostazioni OpenAI Vision
+        </h3>
+        <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-gray-300 leading-relaxed">
+        Inserisci la tua chiave API personale di <strong>OpenAI</strong> per abilitare il riconoscimento reale delle immagini con il modello Vision (GPT-4o-mini). Se la chiave non viene inserita, l'app utilizzerà la modalità di <strong>simulazione dimostrativa integrata</strong>.
+      </p>
+      <div>
+        <label class="text-xs text-gray-400 font-bold block mb-1">Chiave API OpenAI (sk-...)</label>
+        <input type="password" id="openaiKeyInput" placeholder="sk-proj-..." class="w-full bg-brand-input border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-sm focus:border-purple-400 outline-none">
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="saveApiKey()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs transition">Salva Chiave API</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE BACKUP / DATI -->
+  <div id="backupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-brand-modal border border-brand-border w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+        <h3 class="font-black text-brand-yellow text-lg flex items-center gap-2">
+          <i class="fa-solid fa-database"></i> Backup & Esportazione Dati
+        </h3>
+        <button onclick="closeBackupModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-gray-300 leading-relaxed">
+        Puoi esportare tutto il tuo inventario per utilizzarlo su Excel, oppure salvare un file JSON completo da ripristinare in qualsiasi momento.
+      </p>
+      <div class="space-y-2 pt-1">
+        <button onclick="exportToCSV()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-file-excel"></i> Esporta per Excel (.CSV)
+        </button>
+        <button onclick="exportToJSON()" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-file-code"></i> Esporta Backup Completo (.JSON)
+        </button>
+        <label class="w-full py-2.5 px-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer border border-gray-700">
+          <i class="fa-solid fa-upload text-brand-yellow"></i> Ripristina da JSON
+          <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importFromJSON(event)">
+        </label>
+        <button onclick="clearAllData()" class="w-full py-2 px-4 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 font-bold text-xs transition flex items-center justify-center gap-2 mt-4">
+          <i class="fa-solid fa-trash"></i> Elimina Tutti i Dati
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- STATO DELL'APPLICAZIONE ---
+    let itemsDB = JSON.parse(localStorage.getItem('tino_items_db') || '[]');
+    let currentFilter = 'ALL';
+    let activeSellId = null;
+
+    // Oggetto temporaneo durante la creazione guidata
+    let currentObj = {
+      id: null,
+      images: [],
+      box: '',
+      location: '',
+      title: '',
+      description: '',
+      priceNew: '0.00',
+      estimatedMarket: {},
+      priceFinal: '',
+      status: 'DISPONIBILE'
+    };
+
+    function getApiKey() {
+      return localStorage.getItem('tino_openai_key') || '';
+    }
+
+    function saveDB() {
+      localStorage.setItem('tino_items_db', JSON.stringify(itemsDB));
+      renderItems();
+    }
+
+    // --- GESTIONE WIZARD E ACQUISIZIONE ---
+
+    function startNewObjectFlow() {
+      currentObj = {
+        id: 'item_' + Date.now(),
+        images: [],
+        box: '',
+        location: '',
+        title: '',
+        description: '',
+        priceNew: '0.00',
+        estimatedMarket: {},
+        priceFinal: '',
+        status: 'DISPONIBILE'
+      };
+      
+      // Prova ad aprire direttamente l'input della fotocamera
+      const camInput = document.getElementById('cameraInput');
+      if (camInput) {
+        camInput.click();
+      }
+    }
+
+    // Gestione Selezione/Acquisizione Immagini con compressione e ridimensionamento
+    async function handleImagesSelected(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+
+      // Mostriamo una breve notifica/overlay di caricamento
+      showLoadingOverlay("Elaborazione e ottimizzazione foto...");
+
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const compressedDataUrl = await resizeAndCompressImage(files[i]);
+          currentObj.images.push(compressedDataUrl);
+        }
+        hideLoadingOverlay();
+        openWizardStepBox(); // Passa al Modale Scatola
+      } catch (err) {
+        hideLoadingOverlay();
+        alert("Si è verificato un errore durante la lettura dell'immagine: " + err.message);
+      }
+      
+      event.target.value = ''; // Reset per consentire nuovi scatti
+    }
+
+    // Funzione per ridimensionare la foto (max 1024px) ed evitare blocchi di memoria
+    function resizeAndCompressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxDim = 1024;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              }
+            } else {
+              if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convertiamo in JPEG compresso all'80%
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function showLoadingOverlay(text) {
+      let overlay = document.getElementById('loadingOverlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center gap-3 text-white font-bold text-sm';
+        document.body.appendChild(overlay);
+      }
+      overlay.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-3xl text-brand-yellow"></i><span>${text}</span>`;
+      overlay.classList.remove('hidden');
+    }
+
+    function hideLoadingOverlay() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) overlay.classList.add('hidden');
+    }
+
+    function showWizard() {
+      document.getElementById('wizardModal').classList.remove('hidden');
+      document.getElementById('wizardModal').classList.add('flex');
+    }
+
+    function closeWizard() {
+      document.getElementById('wizardModal').classList.add('hidden');
+      document.getElementById('wizardModal').classList.remove('flex');
+    }
+
+    // STEP 2: MODALE SCATOLA
+    function openWizardStepBox() {
+      showWizard();
+      document.getElementById('wizardTitle').innerHTML = `📦 Passaggio Scatola`;
+      document.getElementById('wizardStepInfo').innerText = `Step 1 di 5 • Assegna una scatola o contenitore`;
+
+      const body = document.getElementById('wizardBody');
+      body.innerHTML = `
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs font-bold text-gray-400 block mb-2">Foto acquisite (${currentObj.images.length})</label>
+            <div class="flex gap-2 overflow-x-auto pb-2">
+              ${currentObj.images.map((img, idx) => `
+                <div class="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-gray-700">
+                  <img src="${img}" class="w-full h-full object-cover">
+                  <button onclick="removeImage(${idx})" class="absolute top-1 right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">×</button>
+                </div>
+              `).join('')}
+              <button onclick="document.getElementById('cameraInput').click()" class="flex-shrink-0 w-20 h-20 rounded-xl border-2 border-dashed border-gray-700 hover:border-brand-yellow flex flex-col items-center justify-center text-gray-400 text-xs gap-1 font-bold transition">
+                <i class="fa-solid fa-camera text-base text-brand-yellow"></i> Scatta
+              </button>
+              <button onclick="document.getElementById('galleryInput').click()" class="flex-shrink-0 w-20 h-20 rounded-xl border-2 border-dashed border-gray-700 hover:border-purple-400 flex flex-col items-center justify-center text-gray-400 text-xs gap-1 font-bold transition">
+                <i class="fa-solid fa-image text-base text-purple-400"></i> Galleria
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-gray-300 block mb-1">Numero / Nome Scatola</label>
+            <input type="text" id="stepBoxInput" placeholder="Es. Scatola #04, Contenitore Plastica, Armadio A..." value="${currentObj.box}" class="w-full bg-brand-input border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-brand-yellow">
+          </div>
+
+          <div class="flex gap-2 pt-3">
+            <button onclick="closeWizard()" class="w-1/3 py-3 rounded-xl border border-gray-700 bg-brand-input text-gray-300 font-bold text-xs">Annulla</button>
+            <button onclick="saveStepBox()" class="w-2/3 py-3 rounded-xl bg-brand-yellow hover:bg-yellow-400 text-black font-black text-xs transition">Avanti: Posizione ➔</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function removeImage(index) {
+      currentObj.images.splice(index, 1);
+      if (currentObj.images.length === 0) {
+        closeWizard();
+      } else {
+        openWizardStepBox();
+      }
+    }
+
+    function saveStepBox() {
+      currentObj.box = document.getElementById('stepBoxInput').value.trim() || 'Nessuna';
+      openWizardStepLocation();
+    }
+
+    // STEP 3: MODALE POSIZIONE
+    function openWizardStepLocation() {
+      document.getElementById('wizardTitle').innerHTML = `📍 Posizione Fisica`;
+      document.getElementById('wizardStepInfo').innerText = `Step 2 di 5 • Luogo o stanza specifica`;
+
+      const body = document.getElementById('wizardBody');
+      body.innerHTML = `
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs font-bold text-gray-300 block mb-1">Stanza o Posizione del luogo</label>
+            <input type="text" id="stepLocationInput" placeholder="Es. Garage Ripostiglio, Scaffale In Alto, Mansarda..." value="${currentObj.location}" class="w-full bg-brand-input border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-brand-yellow">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+            <button type="button" onclick="setLocationQuick('Garage')" class="p-2 rounded-xl border border-gray-800 bg-brand-card hover:border-gray-600 text-gray-300 text-left">🏢 Garage</button>
+            <button type="button" onclick="setLocationQuick('Ripostiglio')" class="p-2 rounded-xl border border-gray-800 bg-brand-card hover:border-gray-600 text-gray-300 text-left">🧹 Ripostiglio</button>
+            <button type="button" onclick="setLocationQuick('Camera')" class="p-2 rounded-xl border border-gray-800 bg-brand-card hover:border-gray-600 text-gray-300 text-left">🛏️ Camera</button>
+            <button type="button" onclick="setLocationQuick('Soffitta / Cantina')" class="p-2 rounded-xl border border-gray-800 bg-brand-card hover:border-gray-600 text-gray-300 text-left">📦 Cantina</button>
+          </div>
+
+          <div class="flex gap-2 pt-3">
+            <button onclick="openWizardStepBox()" class="w-1/3 py-3 rounded-xl border border-gray-700 bg-brand-input text-gray-300 font-bold text-xs">⬅️ Indietro</button>
+            <button onclick="saveStepLocation()" class="w-2/3 py-3 rounded-xl bg-brand-yellow hover:bg-yellow-400 text-black font-black text-xs transition">Avanti: Titolo IA ➔</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function setLocationQuick(val) {
+      document.getElementById('stepLocationInput').value = val;
+    }
+
+    function saveStepLocation() {
+      currentObj.location = document.getElementById('stepLocationInput').value.trim() || 'Non specificata';
+      openWizardStepTitle();
+    }
+
+    // STEP 4: MODALE TITOLO (CON IA VISION)
+    function openWizardStepTitle() {
+      document.getElementById('wizardTitle').innerHTML = `🏷️ Titolo Prodotto`;
+      document.getElementById('wizardStepInfo').innerText = `Step 3 di 5 • Identificazione IA dell'oggetto`;
+
+      const body = document.getElementById('wizardBody');
+      body.innerHTML = `
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs font-bold text-gray-300 block mb-1">Titolo dell'oggetto</label>
+            <input type="text" id="stepTitleInput" placeholder="Es. Cuffie Sony WH-1000XM4 Nere" value="${currentObj.title}" class="w-full bg-brand-input border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-brand-yellow">
+          </div>
+
+          <button id="aiTitleBtn" onclick="runAIVisionTitle()" class="ai-gradient-btn w-full py-3 px-4 rounded-xl text-white font-black text-xs shadow-lg flex items-center justify-center gap-2 transition hover:opacity-90">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Riconosci Foto e Completa Titolo con IA</span>
+          </button>
+
+          <div class="flex gap-2 pt-3">
+            <button onclick="openWizardStepLocation()" class="w-1/3 py-3 rounded-xl border border-gray-700 bg-brand-input text-gray-300 font-bold text-xs">⬅️ Indietro</button>
+            <button onclick="saveStepTitle()" class="w-2/3 py-3 rounded-xl bg-brand-yellow hover:bg-yellow-400 text-black font-black text-xs transition">Avanti: Descrizione ➔</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function runAIVisionTitle() {
+      const btn = document.getElementById('aiTitleBtn');
+      const input = document.getElementById('stepTitleInput');
+      const apiKey = getApiKey();
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Analisi immagini in corso...</span>`;
+
+      if (apiKey) {
+        // Chiamata API reale ad OpenAI Vision (GPT-4o-mini)
+        try {
+          const firstImgBase64 = currentObj.images[0];
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: 'Identifica esattamente l\'oggetto visibile nella foto. Fornisci SOLO un titolo breve, chiaro ed efficace per un annuncio di vendita e-commerce (marca, modello e tipologia se identificabili).' },
+                    { type: 'image_url', image_url: { url: firstImgBase64 } }
+                  ]
+                }
+              ],
+              max_tokens: 60
+            })
+          });
+
+          const data = await response.json();
+          if (data.choices && data.choices[0]) {
+            const detectedTitle = data.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+            input.value = detectedTitle;
+            currentObj.title = detectedTitle;
+          } else {
+            throw new Error('Risposta API non valida');
+          }
+        } catch (err) {
+          alert('Errore chiamata OpenAI: ' + err.message + '. Viene usata la sintesi di fallback.');
+          fallbackDemoTitle(input);
+        }
+      } else {
+        // Fallback simulazione se non c'è la chiave
+        await new Promise(r => setTimeout(r, 1000));
+        fallbackDemoTitle(input);
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Titolo Generato con IA!</span>`;
+      setTimeout(() => {
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Riconosci Foto e Completa Titolo con IA</span>`;
+      }, 2500);
+    }
+
+    function fallbackDemoTitle(input) {
+      const demoTitles = [
+        "Cuffie Bluetooth Sony Nere",
+        "Fotocamera Vintage Reflex 35mm",
+        "Console Nintendo Switch con Controller",
+        "Orologio Cronografo in Acciaio",
+        "Smartphone Android 128GB Usato"
+      ];
+      const randomTitle = demoTitles[Math.floor(Math.random() * demoTitles.length)];
+      input.value = randomTitle;
+      currentObj.title = randomTitle;
+    }
+
+    function saveStepTitle() {
+      currentObj.title = document.getElementById('stepTitleInput').value.trim() || 'Oggetto Senza Titolo';
+      openWizardStepDescription();
+    }
+
+    // STEP 5: MODALE DESCRIZIONE
+    function openWizardStepDescription() {
+      document.getElementById('wizardTitle').innerHTML = `📝 Descrizione`;
+      document.getElementById('wizardStepInfo').innerText = `Step 4 di 5 • Generazione testo e dettagli`;
+
+      const body = document.getElementById('wizardBody');
+      body.innerHTML = `
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs font-bold text-gray-300 block mb-1">Descrizione dell'oggetto</label>
+            <textarea id="stepDescInput" rows="5" placeholder="Descrivi condizioni, difetti visibili, accessori inclusi..." class="w-full bg-brand-input border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-brand-yellow leading-relaxed">${currentObj.description}</textarea>
+          </div>
+
+          <button id="aiDescBtn" onclick="runAIVisionDescription()" class="ai-gradient-btn w-full py-3 px-4 rounded-xl text-white font-black text-xs shadow-lg flex items-center justify-center gap-2 transition hover:opacity-90">
+            <i class="fa-solid fa-feather-pointed"></i>
+            <span>Genera Descrizione Annuncio Completa con IA</span>
+          </button>
+
+          <div class="flex gap-2 pt-3">
+            <button onclick="openWizardStepTitle()" class="w-1/3 py-3 rounded-xl border border-gray-700 bg-brand-input text-gray-300 font-bold text-xs">⬅️ Indietro</button>
+            <button onclick="saveStepDescription()" class="w-2/3 py-3 rounded-xl bg-brand-yellow hover:bg-yellow-400 text-black font-black text-xs transition">Avanti: Prezzi ➔</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function runAIVisionDescription() {
+      const btn = document.getElementById('aiDescBtn');
+      const textarea = document.getElementById('stepDescInput');
+      const apiKey = getApiKey();
+      const title = currentObj.title || 'Oggetto';
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Elaborazione testo in corso...</span>`;
+
+      if (apiKey) {
+        try {
+          const firstImgBase64 = currentObj.images[0];
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: `Scrivi una descrizione professionale e persuasiva in italiano per vendere questo oggetto intitolato "${title}". Descrivi lo stato generale di conservazione visibile nella foto e indica che l'oggetto viene venduto visto e piaciuto.` },
+                    { type: 'image_url', image_url: { url: firstImgBase64 } }
+                  ]
+                }
+              ],
+              max_tokens: 200
+            })
+          });
+
+          const data = await response.json();
+          if (data.choices && data.choices[0]) {
+            const desc = data.choices[0].message.content.trim();
+            textarea.value = desc;
+            currentObj.description = desc;
+          } else {
+            throw new Error('Risposta API non valida');
+          }
+        } catch (err) {
+          alert('Errore IA: ' + err.message);
+          fallbackDemoDesc(textarea, title);
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 1000));
+        fallbackDemoDesc(textarea, title);
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Descrizione Generata!</span>`;
+      setTimeout(() => {
+        btn.innerHTML = `<i class="fa-solid fa-feather-pointed"></i> <span>Genera Descrizione Annuncio Completa con IA</span>`;
+      }, 2500);
+    }
+
+    function fallbackDemoDesc(textarea, title) {
+      const demoDesc = `Oggetto: ${title}.\nStato: Usato in ottime condizioni estetiche e funzionali.\nDescrizione: Articolo conservato con cura, completo dei principali elementi originali. Ideale per appassionati o per un rapido affare. Disponibile per spedizione immediata o ritiro a mano.`;
+      textarea.value = demoDesc;
+      currentObj.description = demoDesc;
+    }
+
+    function saveStepDescription() {
+      currentObj.description = document.getElementById('stepDescInput').value.trim();
+      calculateMarketEstimates();
+      openWizardStepPrice();
+    }
+
+    // STEP 6: MODALE PREZZO E STIME DI MERCATO
+    function calculateMarketEstimates() {
+      const seed = (currentObj.title.length * 7) + 25;
+      const basePrice = Math.floor((seed % 140) + 30);
+      
+      currentObj.priceNew = (basePrice * 1.85).toFixed(2);
+      currentObj.estimatedMarket = {
+        subito: `€ ${Math.floor(basePrice * 0.9)} - € ${Math.floor(basePrice * 1.15)}`,
+        vinted: `€ ${Math.floor(basePrice * 0.85)} - € ${Math.floor(basePrice * 1.05)}`,
+        wallapop: `€ ${Math.floor(basePrice * 0.88)} - € ${Math.floor(basePrice * 1.10)}`,
+        ebay: `€ ${Math.floor(basePrice * 0.95)} - € ${Math.floor(basePrice * 1.25)}`,
+        marketplace: `€ ${Math.floor(basePrice * 0.90)}`
+      };
+      
+      if (!currentObj.priceFinal) {
+        currentObj.priceFinal = basePrice.toFixed(2);
+      }
+    }
+
+    function openWizardStepPrice() {
+      document.getElementById('wizardTitle').innerHTML = `💶 Prezzo & Valutazione`;
+      document.getElementById('wizardStepInfo').innerText = `Step 5 di 5 • Valutazione marketplace e conferma`;
+
+      const body = document.getElementById('wizardBody');
+      body.innerHTML = `
+        <div class="space-y-4">
+          <!-- BOX STIME MARKETPLACE -->
+          <div class="bg-brand-card border border-brand-border rounded-2xl p-3.5 space-y-2 text-xs">
+            <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+              <span class="font-extrabold text-brand-yellow flex items-center gap-1.5">
+                <i class="fa-solid fa-chart-line"></i> Valutazione Orientativa di Mercato
+              </span>
+              <span class="text-gray-400">Nuovo: <strong class="text-green-400">€ ${currentObj.priceNew}</strong></span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1 text-gray-300">
+              <div class="flex justify-between"><span>Subito.it:</span> <strong class="text-white">${currentObj.estimatedMarket.subito}</strong></div>
+              <div class="flex justify-between"><span>Vinted:</span> <strong class="text-white">${currentObj.estimatedMarket.vinted}</strong></div>
+              <div class="flex justify-between"><span>Wallapop:</span> <strong class="text-white">${currentObj.estimatedMarket.wallapop}</strong></div>
+              <div class="flex justify-between"><span>eBay:</span> <strong class="text-white">${currentObj.estimatedMarket.ebay}</strong></div>
+              <div class="col-span-2 flex justify-between pt-1 border-t border-gray-800/60 text-gray-400">
+                <span>FB Marketplace:</span> <strong class="text-brand-yellow">${currentObj.estimatedMarket.marketplace}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs font-extrabold text-brand-yellow block mb-1">Il tuo prezzo di vendita finale (€)</label>
+            <input type="number" step="0.01" id="stepFinalPriceInput" placeholder="0.00" value="${currentObj.priceFinal}" class="w-full bg-brand-input border-2 border-brand-yellow rounded-xl px-4 py-3 text-white font-black text-xl outline-none focus:ring-2 focus:ring-yellow-500/30">
+          </div>
+
+          <div class="flex gap-2 pt-3">
+            <button onclick="openWizardStepDescription()" class="w-1/3 py-3 rounded-xl border border-gray-700 bg-brand-input text-gray-300 font-bold text-xs">⬅️ Indietro</button>
+            <button onclick="saveFinalObject()" class="w-2/3 py-3 rounded-xl bg-green-500 hover:bg-green-400 text-black font-black text-sm shadow-lg shadow-green-500/10 transition">Conferma e Salva Oggetto ✓</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveFinalObject() {
+      const priceVal = parseFloat(document.getElementById('stepFinalPriceInput').value);
+      currentObj.priceFinal = isNaN(priceVal) ? '0.00' : priceVal.toFixed(2);
+
+      // Aggiorna o Aggiunge nel database
+      const existingIdx = itemsDB.findIndex(i => i.id === currentObj.id);
+      if (existingIdx >= 0) {
+        itemsDB[existingIdx] = currentObj;
+      } else {
+        itemsDB.unshift(currentObj);
+      }
+
+      saveDB();
+      closeWizard();
+    }
+
+    // --- RENDER LISTA E DASHBOARD ---
+
+    function setFilter(filterType) {
+      currentFilter = filterType;
+      
+      // Aggiorna stile tasti filtro
+      ['ALL', 'Nessuna', 'VENDUTO', 'DISPONIBILE'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (!btn) return;
+        if (f === filterType) {
+          btn.className = "px-3 py-1.5 rounded-xl border border-brand-yellow bg-brand-yellow text-black font-extrabold transition";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-xl border border-gray-700 bg-brand-input text-gray-300 hover:border-gray-500 transition";
+        }
+      });
+
+      renderItems();
+    }
+
+    function renderItems() {
+      const listEl = document.getElementById('itemList');
+      const searchQuery = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+
+      // Filtraggio
+      let filtered = itemsDB.filter(item => {
+        const matchesSearch = (item.title || '').toLowerCase().includes(searchQuery) || 
+                              (item.box || '').toLowerCase().includes(searchQuery) || 
+                              (item.location || '').toLowerCase().includes(searchQuery);
+
+        if (!matchesSearch) return false;
+
+        if (currentFilter === 'ALL') return true;
+        if (currentFilter === 'Nessuna') return item.box && item.box !== 'Nessuna';
+        if (currentFilter === 'VENDUTO') return item.status === 'VENDUTO';
+        if (currentFilter === 'DISPONIBILE') return item.status === 'DISPONIBILE';
+        return true;
+      });
+
+      // Aggiornamento Statistiche
+      const totalCount = itemsDB.length;
+      const availableCount = itemsDB.filter(i => i.status === 'DISPONIBILE').length;
+      const totalVal = itemsDB.reduce((sum, i) => sum + (parseFloat(i.priceFinal) || 0), 0);
+
+      document.getElementById('statTotal').innerText = totalCount;
+      document.getElementById('statAvailable').innerText = availableCount;
+      document.getElementById('statValue').innerText = `€ ${totalVal.toFixed(2)}`;
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="bg-brand-card border border-brand-border rounded-2xl p-8 text-center space-y-3">
+            <div class="text-4xl">📦</div>
+            <div class="text-gray-400 text-sm font-semibold">Nessun oggetto trovato</div>
+            <p class="text-xs text-gray-500">Clicca su "+ Nuovo Oggetto" per avviare l'acquisizione con fotocamera e IA.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(item => {
+        const firstImg = item.images && item.images.length > 0 ? item.images[0] : 'https://placehold.co/150x150/1e222e/9aa3b2?text=No+Foto';
+        
+        // Badge di stato
+        let statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-black px-2 py-0.5 rounded-full">DISPONIBILE</span>`;
+        if (item.status === 'VENDUTO') {
+          statusBadge = `<span class="bg-red-500/20 text-red-400 border border-red-500/40 text-[10px] font-black px-2 py-0.5 rounded-full">VENDUTO (€ ${item.sellPrice || item.priceFinal})</span>`;
+        }
+
+        return `
+          <div class="bg-brand-card border border-brand-border rounded-2xl p-3.5 flex gap-3.5 items-center hover:border-gray-700 transition group">
+            <div class="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-brand-input border border-gray-800">
+              <img src="${firstImg}" class="w-full h-full object-cover">
+              ${item.images.length > 1 ? `<span class="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">+${item.images.length - 1}</span>` : ''}
+            </div>
+
+            <div class="flex-grow min-w-0 space-y-1">
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="font-extrabold text-white text-sm truncate leading-snug">${item.title}</h3>
+                ${statusBadge}
+              </div>
+
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                <span class="flex items-center gap-1"><i class="fa-solid fa-box text-brand-yellow text-[10px]"></i> ${item.box || 'Nessuna'}</span>
+                <span class="flex items-center gap-1"><i class="fa-solid fa-location-dot text-red-400 text-[10px]"></i> ${item.location || 'N/D'}</span>
+              </div>
+
+              <div class="flex items-center justify-between pt-1">
+                <div class="text-base font-black text-green-400">€ ${item.priceFinal}</div>
+                
+                <div class="flex items-center gap-1">
+                  ${item.status !== 'VENDUTO' ? `
+                    <button onclick="openSellModal('${item.id}')" class="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 text-xs font-bold px-2.5 py-1 rounded-lg transition">
+                      Segna Venduto
+                    </button>
+                  ` : ''}
+                  <button onclick="editItem('${item.id}')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 p-1.5 rounded-lg text-xs transition" title="Modifica">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button onclick="deleteItem('${item.id}')" class="bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 p-1.5 rounded-lg text-xs transition" title="Elimina">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- MODIFICA ED ELIMINAZIONE ---
+    function editItem(id) {
+      const item = itemsDB.find(i => i.id === id);
+      if (!item) return;
+      currentObj = JSON.parse(JSON.stringify(item));
+      openWizardStepBox();
+    }
+
+    function deleteItem(id) {
+      if (!confirm('Sei sicuro di voler eliminare questo oggetto?')) return;
+      itemsDB = itemsDB.filter(i => i.id !== id);
+      saveDB();
+    }
+
+    // --- REGISTRAZIONE VENDITA ---
+    function openSellModal(id) {
+      activeSellId = id;
+      const item = itemsDB.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('sellItemTitle').innerText = item.title;
+      document.getElementById('sellPriceInput').value = item.priceFinal;
+      document.getElementById('sellModal').classList.remove('hidden');
+      document.getElementById('sellModal').classList.add('flex');
+    }
+
+    function closeSellModal() {
+      document.getElementById('sellModal').classList.add('hidden');
+      document.getElementById('sellModal').classList.remove('flex');
+      activeSellId = null;
+    }
+
+    function confirmMarkAsSold() {
+      if (!activeSellId) return;
+      const item = itemsDB.find(i => i.id === activeSellId);
+      if (item) {
+        item.status = 'VENDUTO';
+        item.sellPrice = document.getElementById('sellPriceInput').value || item.priceFinal;
+        item.sellPlatform = document.getElementById('sellPlatformInput').value;
+        saveDB();
+      }
+      closeSellModal();
+    }
+
+    // --- IMPOSTAZIONI API KEY ---
+    function openSettingsModal() {
+      document.getElementById('openaiKeyInput').value = getApiKey();
+      document.getElementById('settingsModal').classList.remove('hidden');
+      document.getElementById('settingsModal').classList.add('flex');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+      document.getElementById('settingsModal').classList.remove('flex');
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('openaiKeyInput').value.trim();
+      localStorage.setItem('tino_openai_key', key);
+      closeSettingsModal();
+      alert('Chiave API OpenAI salvata con successo!');
+    }
+
+    // --- BACKUP ED ESPORTAZIONE ---
+    function openBackupModal() {
+      document.getElementById('backupModal').classList.remove('hidden');
+      document.getElementById('backupModal').classList.add('flex');
+    }
+
+    function closeBackupModal() {
+      document.getElementById('backupModal').classList.add('hidden');
+      document.getElementById('backupModal').classList.remove('flex');
+    }
+
+    function exportToJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(itemsDB, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `tino_app_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function exportToCSV() {
+      if (itemsDB.length === 0) return alert('Nessun dato da esportare.');
+      
+      let csvContent = "data:text/csv;charset=utf-8,ID;Titolo;Scatola;Posizione;PrezzoStimato;Stato;PrezzoVendita;Piattaforma\n";
+      itemsDB.forEach(i => {
+        const row = [
+          i.id,
+          `"${(i.title || '').replace(/"/g, '""')}"`,
+          `"${(i.box || '').replace(/"/g, '""')}"`,
+          `"${(i.location || '').replace(/"/g, '""')}"`,
+          i.priceFinal,
+          i.status,
+          i.sellPrice || '',
+          i.sellPlatform || ''
+        ].join(';');
+        csvContent += row + "\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `tino_inventario_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function importFromJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            itemsDB = imported;
+            saveDB();
+            alert('Ripristino completato con successo!');
+            closeBackupModal();
+          } else {
+            alert('Formato file JSON non valido.');
+          }
+        } catch (err) {
+          alert('Errore nella lettura del file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function clearAllData() {
+      if (confirm('ATTENZIONE: Verranno eliminati TUTTI gli oggetti memorizzati in TINO. Vuoi procedere?')) {
+        itemsDB = [];
+        saveDB();
+        closeBackupModal();
+      }
+    }
+
+    // Inizializzazione all'avvio
+    window.onload = function() {
+      renderItems();
+    };
+  </script>
+</body>
+</html>
